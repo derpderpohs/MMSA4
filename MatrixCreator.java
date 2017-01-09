@@ -1,35 +1,37 @@
 /*
-*
 * This class formats the matrix for the the application
  */
-package mmsa;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- *
- * @author HJS
- */
 public class MatrixCreator {
 
     private Map<String, Map<String, Double>> matrix; //outer string references x axis values
     private Map<String, Double> yAxis, idfList; //each item in the y axis; this map exists for every matrix element.
-    private Map<String, List<String>> photoTags;
-    private final String fileName;
+    private Map<String, List<String>> photoTags; //groups tags that belong to the same picture
+    private final String fileName; 
     private final String splitter = ",";
-    public final double totalImg = 10000;
+    public final double totalImg = 10000; //we already know the total number of images
     private String line = "";
-    private Map<String, Double> listOfTerms;
+    private Map<String, Double> listOfTerms; //used to calculate TF-IDF 
 
     public MatrixCreator(String filename) {
         fileName = filename;
+    }
+
+    public static void main(String[] args) {
+        MatrixCreator mc = new MatrixCreator("tags.csv");
+        mc.createMatrix();
+        mc.createPhotoTags();
     }
 
     //read tags.csv
@@ -79,7 +81,9 @@ public class MatrixCreator {
         return matrix;
     }
 
-    //Read photo_tags.csv
+    //Read photo_tags.csv. this method stores the data in the csv to photoTags;
+    //the purpose is to group the disparate data together for correlation so it would be easier
+    //to match afterword.
     public Map<String, List<String>> createPhotoTags() {
         photoTags = new HashMap<>();
         try {
@@ -100,7 +104,8 @@ public class MatrixCreator {
         return photoTags;
     }
 
-    //read photoTags, then add 1 for each corelation
+    //read photoTags, then add 1 for each corelation. this method adds corelation
+    //w/o computing TF-IDF weights
     private void setCorelation() {
         //for each photo
         for (Map.Entry<String, List<String>> s : photoTags.entrySet()) {
@@ -136,6 +141,7 @@ public class MatrixCreator {
 
     }
 
+    //this method prints out the top 5 tags and writes it to a csv file.
     public void printMatrix() {
         String text = ",";
         try {
@@ -175,6 +181,7 @@ public class MatrixCreator {
 
     }
 
+    //this method computes the top tags for the 3 required tags in the AX for both ways.
     public void recommendTags(Map<String, Map<String, Double>> m) {
         ArrayList<String> rTags = new ArrayList();
 
@@ -182,6 +189,7 @@ public class MatrixCreator {
         rTags.add("people");
         rTags.add("london");
 
+        //createa a custom comparator because the default cannot access the double value in our entry.
         Comparator<Map.Entry<String, Double>> comp = (Map.Entry<String, Double> a, Map.Entry<String, Double> b) -> {
             return b.getValue().compareTo(a.getValue());
         };
@@ -192,7 +200,7 @@ public class MatrixCreator {
             l.sort(comp);
             System.out.println("current tag is " + currentTag);
             for (int k = 0; k < 5; k++) {
-                System.out.println("top" + k + " is " + l.get(k));
+                System.out.println("top " + (k + 1) + " is " + l.get(k));
             }
             System.out.println("");
         }
@@ -207,22 +215,12 @@ public class MatrixCreator {
         }
     }
 
+    //this method transforms the weight of the original cooccurance matrix to its IDF form.
     public void generateIDFMatrix() {
         for (Map.Entry<String, Map<String, Double>> m : matrix.entrySet()) {
             for (Map.Entry<String, Double> ma : m.getValue().entrySet()) {
                 ma.setValue(idfList.get(ma.getKey()) * ma.getValue());
             }
         }
-//        for (Map.Entry<String, Double> en : listOfTerms.entrySet()) {
-//           // double idf = calIDF(en.getValue());
-//            Map<String, Double> m = matrix.get(en.getKey());
-////            System.out.println("idf for key is " + en.getKey() + " idf is " + idf);
-//            for (Map.Entry<String, Double> entry : m.entrySet()) {
-//                double sum = entry.getValue();
-//
-//                m.put(entry.getKey(), sum);
-//            }
-//
-//        }
     }
 }
